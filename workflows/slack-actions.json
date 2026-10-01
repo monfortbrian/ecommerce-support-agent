@@ -1,0 +1,414 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "c1", "name": "mailbox", "value": "support@example.com", "type": "string" },
+            { "id": "c3", "name": "slack_channel", "value": "YOUR_SLACK_CHANNEL_ID", "type": "string" },
+            { "id": "c4", "name": "sp_site_id", "value": "YOUR_SHAREPOINT_SITE_ID", "type": "string" },
+            { "id": "c13", "name": "azure_openai_url", "value": "https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT/chat/completions?api-version=2025-03-01-preview", "type": "string" },
+            { "id": "c14", "name": "azure_openai_deployment", "value": "YOUR_DEPLOYMENT", "type": "string" },
+            { "id": "c38", "name": "shopify_shop", "value": "your-store.myshopify.com", "type": "string" },
+            { "id": "c39", "name": "shopify_api_version", "value": "2025-01", "type": "string" },
+            { "id": "cv1", "name": "config_version", "value": "1", "type": "string" },
+            { "id": "cv2", "name": "order_lookup_enabled", "value": "true", "type": "string" },
+            { "id": "cv3", "name": "compensation_amazon_override_pct", "value": "100", "type": "string" },
+            { "id": "cv4", "name": "compensation_floor_pct", "value": "30", "type": "string" },
+            { "id": "cv5", "name": "compensation_rude_pct", "value": "0", "type": "string" },
+            { "id": "cv6", "name": "canonical_video_url", "value": "https://example.com/video", "type": "string" },
+            { "id": "cv7", "name": "required_phrase_c01", "value": "YOUR_INSTRUCTION_PHRASE", "type": "string" },
+            { "id": "cv8", "name": "banned_phrases", "value": "free of charge,defective", "type": "string" },
+            { "id": "cv9", "name": "link_domain_allowlist", "value": "example.com,myshopify.com,amazon.com,amazon.de", "type": "string" },
+            { "id": "cv10", "name": "last_intake_success_iso", "value": "", "type": "string" },
+            { "id": "cv11", "name": "downtime_recovery_threshold_minutes", "value": "45", "type": "string" },
+            { "id": "c36", "name": "error_workflow_id", "value": "YOUR_ERROR_WORKFLOW_ID", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2bdcfe73-22be-45ba-819f-9d78f58d369e",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2144, 1392]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-agent/slack-actions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "43ef6273-2f93-49ec-9e43-d55760718721",
+      "name": "Webhook: Slack Interactivity",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [2144, 1648]
+    },
+    {
+      "parameters": {
+        "content": "Verify the Slack HMAC with a Crypto credential. Reject timestamps older than 5 minutes. Ack within 3 seconds, do all work after the ack.",
+        "height": 220,
+        "width": 380
+      },
+      "id": "a4c884bd-2012-4122-b361-776221a52f8b",
+      "name": "Note: Security",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [2144, 1088]
+    },
+    {
+      "parameters": {
+        "jsCode": "// base_string = 'v0:' + timestamp + ':' + rawBody; also set $json.timestamp_fresh = (now - timestamp) < 300"
+      },
+      "id": "3059d9f8-ceb0-4abb-8df6-0e1fe730643e",
+      "name": "Code: Build Signature Base String + Check Freshness",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2416, 1648]
+    },
+    {
+      "parameters": {},
+      "id": "34256369-1d93-4b48-9aab-56bac3589ec9",
+      "name": "IF: Timestamp Fresh",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2672, 1648]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{$json.base_string}}"
+      },
+      "id": "3d100a98-b7b1-42bc-a9d5-9907ba042ddf",
+      "name": "Crypto: Compute HMAC SHA256",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [2928, 1552]
+    },
+    {
+      "parameters": {},
+      "id": "e9802d93-e3ef-4582-8079-5d03892a475e",
+      "name": "IF: Signature Matches Header",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [3184, 1552]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "invalid signature",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "4b3fba4c-5d78-4235-baf4-905c6be5c3c4",
+      "name": "Respond: 401 Invalid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3456, 1744]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "options": {}
+      },
+      "id": "e1f6887c-0213-4f61-b922-c7216268fffe",
+      "name": "Respond: 200 Immediate Ack",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3456, 1552]
+    },
+    {
+      "parameters": {
+        "jsCode": "// detect block_actions (approve/park/forward/edit_open) vs view_submission (edit_submit); extract case_id, acting user, and for edit_submit the full edited text"
+      },
+      "id": "51f07c46-819d-4153-a31f-0131fcd91720",
+      "name": "Code: Parse Interaction Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3712, 1552]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "607fc9c1-c618-4419-b4f9-3c9debd59ca2",
+      "name": "Switch: Route by Interaction",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [3968, 1552]
+    },
+    {
+      "parameters": {
+        "url": "REPLACE_ME/cases/{{$json.case_id}}",
+        "options": {}
+      },
+      "id": "2d80a9c2-3049-4621-b152-53b834090dff",
+      "name": "Data Table: Fetch Current Draft (Fresh)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4224, 1200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.microsoft.com/v1.0/me/sendMail",
+        "options": {}
+      },
+      "id": "3115e28c-bf26-4fb7-8e2e-9eb1edbf6425",
+      "name": "Graph: Send Reply Email to Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4496, 1200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_ME/cases/{{$json.case_id}}/status",
+        "options": {}
+      },
+      "id": "2e294ee1-869c-4fde-b257-2d3d510dc0c8",
+      "name": "Data Table: Set Status = Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4752, 1200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.update",
+        "options": {}
+      },
+      "id": "20394cf7-e29a-44d1-90fc-7391ce8de580",
+      "name": "Slack API: Update Message (Approved)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [5008, 1200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_ME/cases/{{$json.case_id}}/status",
+        "options": {}
+      },
+      "id": "a583f96d-07f6-47e1-a295-f4f170de0ae8",
+      "name": "Data Table: Set Status = Parked",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4224, 1392]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.update",
+        "options": {}
+      },
+      "id": "c37c2a8f-16e4-4780-bd9a-bdee03e155ba",
+      "name": "Slack API: Update Message (Parked)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4496, 1392]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/views.open",
+        "options": {}
+      },
+      "id": "615b07bf-c711-45be-9da2-286bfc46af5d",
+      "name": "Slack API: Open Forward Picker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4224, 1600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_ME/cases/{{$json.case_id}}/status",
+        "options": {}
+      },
+      "id": "6301b159-fb19-46d4-850e-c1a0b7155500",
+      "name": "Data Table: Set Status = Forwarded",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4496, 1600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/views.open",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "26186f95-5f71-4ab2-a2e9-41f264deae73",
+      "name": "Slack API: Open Edit Modal (Prefilled, Timeout Set)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4224, 1792]
+    },
+    {
+      "parameters": {},
+      "id": "3bda7103-705c-4f80-b2e6-3d7555d01d29",
+      "name": "IF: Modal Opened Successfully",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [4496, 1792]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postEphemeral",
+        "options": {}
+      },
+      "id": "ceb00f31-f2d5-48fd-9812-8de5b18f52a1",
+      "name": "Slack API: Post Ephemeral Edit-Failed Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4752, 1888]
+    },
+    {
+      "parameters": {
+        "jsCode": "// extract full edited draft text from the view_submission payload"
+      },
+      "id": "9e4aa371-8da2-49f1-825f-ccaa81568b3b",
+      "name": "Code: Parse Edited Draft (view_submission)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4224, 2000]
+    },
+    {
+      "parameters": {
+        "jsCode": "// check every link against cfg.link_domain_allowlist. If a link is not on the allowlist, attach a visible warning. Never strip it silently."
+      },
+      "id": "fa691589-d2d4-4b41-880e-cbdb2f45c2ee",
+      "name": "Code: Validate Links Against Allowlist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4496, 2000]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_ME/cases/{{$json.case_id}}/draft",
+        "options": {}
+      },
+      "id": "15a23b4e-cd0e-4fad-80a9-089dd66b558f",
+      "name": "Data Table: Save Edited Draft (Full Text)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4752, 2000]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.update",
+        "options": {}
+      },
+      "id": "ceba7e76-d983-4caa-b051-374196cafa52",
+      "name": "Slack API: Redraw Card With New Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [5008, 2000]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "options": {}
+      },
+      "id": "b058500d-69d9-439b-a735-2b2a668f4634",
+      "name": "Merge: Converge Branches",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [5264, 1552]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_ME/audit_log",
+        "options": {}
+      },
+      "id": "4fd7ee7f-e2fa-4c7b-9bcf-2880d67947d2",
+      "name": "Data Table: Append Audit Log Entry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [5536, 1552]
+    },
+    {
+      "parameters": {},
+      "id": "fed9b620-d0cd-45c4-871b-027b075a4940",
+      "name": "End",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [5792, 1552]
+    }
+  ],
+  "connections": {
+    "Webhook: Slack Interactivity": { "main": [[{ "node": "Code: Build Signature Base String + Check Freshness", "type": "main", "index": 0 }]] },
+    "Code: Build Signature Base String + Check Freshness": { "main": [[{ "node": "IF: Timestamp Fresh", "type": "main", "index": 0 }]] },
+    "IF: Timestamp Fresh": {
+      "main": [
+        [{ "node": "Crypto: Compute HMAC SHA256", "type": "main", "index": 0 }],
+        [{ "node": "Respond: 401 Invalid", "type": "main", "index": 0 }]
+      ]
+    },
+    "Crypto: Compute HMAC SHA256": { "main": [[{ "node": "IF: Signature Matches Header", "type": "main", "index": 0 }]] },
+    "IF: Signature Matches Header": {
+      "main": [
+        [{ "node": "Respond: 200 Immediate Ack", "type": "main", "index": 0 }],
+        [{ "node": "Respond: 401 Invalid", "type": "main", "index": 0 }]
+      ]
+    },
+    "Respond: 200 Immediate Ack": { "main": [[{ "node": "Code: Parse Interaction Payload", "type": "main", "index": 0 }]] },
+    "Code: Parse Interaction Payload": { "main": [[{ "node": "Switch: Route by Interaction", "type": "main", "index": 0 }]] },
+    "Switch: Route by Interaction": { "main": [[{ "node": "Data Table: Fetch Current Draft (Fresh)", "type": "main", "index": 0 }]] },
+    "Data Table: Fetch Current Draft (Fresh)": { "main": [[{ "node": "Graph: Send Reply Email to Customer", "type": "main", "index": 0 }]] },
+    "Graph: Send Reply Email to Customer": { "main": [[{ "node": "Data Table: Set Status = Approved", "type": "main", "index": 0 }]] },
+    "Data Table: Set Status = Approved": { "main": [[{ "node": "Slack API: Update Message (Approved)", "type": "main", "index": 0 }]] },
+    "Slack API: Update Message (Approved)": { "main": [[{ "node": "Merge: Converge Branches", "type": "main", "index": 0 }]] },
+    "Data Table: Set Status = Parked": { "main": [[{ "node": "Slack API: Update Message (Parked)", "type": "main", "index": 0 }]] },
+    "Slack API: Update Message (Parked)": { "main": [[{ "node": "Merge: Converge Branches", "type": "main", "index": 1 }]] },
+    "Slack API: Open Forward Picker": { "main": [[{ "node": "Data Table: Set Status = Forwarded", "type": "main", "index": 0 }]] },
+    "Slack API: Open Edit Modal (Prefilled, Timeout Set)": { "main": [[{ "node": "IF: Modal Opened Successfully", "type": "main", "index": 0 }]] },
+    "IF: Modal Opened Successfully": {
+      "main": [
+        [],
+        [{ "node": "Slack API: Post Ephemeral Edit-Failed Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code: Parse Edited Draft (view_submission)": { "main": [[{ "node": "Code: Validate Links Against Allowlist", "type": "main", "index": 0 }]] },
+    "Code: Validate Links Against Allowlist": { "main": [[{ "node": "Data Table: Save Edited Draft (Full Text)", "type": "main", "index": 0 }]] },
+    "Data Table: Save Edited Draft (Full Text)": { "main": [[{ "node": "Slack API: Redraw Card With New Draft", "type": "main", "index": 0 }]] },
+    "Merge: Converge Branches": { "main": [[{ "node": "Data Table: Append Audit Log Entry", "type": "main", "index": 0 }]] },
+    "Data Table: Append Audit Log Entry": { "main": [[{ "node": "End", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {}
+}
