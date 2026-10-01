@@ -1,0 +1,211 @@
+{
+  "note": "Mock inbox for test_mode. Sender address decides mocked channel: amazonbuyer = amazon, shopifybuyer = shopify, anything else = unknown. Compensation is null when no compensation is offered.",
+  "cases": [
+    {
+      "id": "01",
+      "name": "plain English, no photo, vague cause",
+      "input": {
+        "subject": "Tray cracked",
+        "from": "anna.shopifybuyer@example.com",
+        "body": "My tray cracked after I pulled it out. It is clearly broken.",
+        "attachments": []
+      },
+      "expected": {
+        "category": "SUPPORT",
+        "language": "en",
+        "channel": "shopify",
+        "cause_determined": false,
+        "compensation": null,
+        "draft": "request_evidence"
+      }
+    },
+    {
+      "id": "02",
+      "name": "Danish, usage cause stated",
+      "input": {
+        "subject": "Min bakke er i stykker",
+        "from": "lars.shopifybuyer@example.dk",
+        "body": "Min bakke gik i stykker da jeg trak den ud efter fryseren. Jeg bor i Danmark.",
+        "attachments": []
+      },
+      "expected": {
+        "category": "SUPPORT",
+        "language": "da",
+        "country": "DK",
+        "channel": "shopify",
+        "cause_determined": true,
+        "compensation": 30,
+        "reply_needs_translation": true
+      }
+    },
+    {
+      "id": "03",
+      "name": "French, marketplace order, clear photo",
+      "input": {
+        "subject": "Probleme avec mon bac",
+        "from": "marie.amazonbuyer@example.fr",
+        "body": "Le bac est fendu, achete sur Amazon. Voici une photo.",
+        "attachments": [{ "contentType": "image/jpeg", "kind": "clear_damage" }]
+      },
+      "expected": {
+        "language": "fr",
+        "channel": "amazon",
+        "damage_visible": true,
+        "cause_determined": true,
+        "compensation": 100
+      }
+    },
+    {
+      "id": "04",
+      "name": "no signal",
+      "input": {
+        "subject": "asdkj??",
+        "from": "weird.unknownbuyer@example.com",
+        "body": "idk it just. doesnt work??? the thing. cold. help",
+        "attachments": []
+      },
+      "expected": {
+        "category": "ESCALATE",
+        "channel": "unknown",
+        "compensation": null
+      }
+    },
+    {
+      "id": "05",
+      "name": "reply on an open fault case",
+      "input": {
+        "subject": "RE: your case",
+        "from": "joy.shopifybuyer@example.us",
+        "body": "Here are the photos.",
+        "conversationId": "test-conv-existing-005",
+        "existing_case_id": "CS-20260820-ABC123",
+        "attachments": [{ "contentType": "image/jpeg", "kind": "clear_damage" }]
+      },
+      "setup": "Seed a case row with this conversation ID, status pending_approval and reports_product_fault true.",
+      "expected": {
+        "is_continuation_of_open_case": true,
+        "reports_product_fault": true,
+        "channel": "shopify",
+        "compensation": 30
+      }
+    },
+    {
+      "id": "06",
+      "name": "rude, no evidence",
+      "input": {
+        "subject": "This is ridiculous, fix it NOW",
+        "from": "rude.shopifybuyer@example.com",
+        "body": "This product is garbage and so is your company. Fix it now or I will report you everywhere.",
+        "attachments": []
+      },
+      "expected": {
+        "rude_or_gaming": true,
+        "manipulation_attempt": false,
+        "compensation": 0,
+        "draft": "polite_decline"
+      }
+    },
+    {
+      "id": "07",
+      "name": "detached part, no tray in frame",
+      "input": {
+        "subject": "Broken handle",
+        "from": "rainer.shopifybuyer@example.de",
+        "body": "Ich habe ein abgebrochenes Griffstueck fotografiert.",
+        "attachments": [{ "contentType": "image/jpeg", "kind": "part_only_no_tray" }]
+      },
+      "expected": {
+        "language": "de",
+        "sku_from_vision": null,
+        "vision_confidence": "low",
+        "manual_review": true,
+        "compensation": null
+      }
+    },
+    {
+      "id": "08",
+      "name": "receipt only",
+      "input": {
+        "subject": "Receipt attached",
+        "from": "kenji.amazonbuyer@example.jp",
+        "body": "Broken tray, receipt attached showing the product name.",
+        "attachments": [{ "contentType": "image/jpeg", "kind": "receipt_only" }]
+      },
+      "expected": {
+        "identified_from_receipt": true,
+        "damage_visible": false,
+        "cause_determined": false,
+        "compensation": null,
+        "draft": "request_evidence"
+      }
+    },
+    {
+      "id": "09",
+      "name": "Russian, no photo",
+      "input": {
+        "subject": "Zhaloba na produkt",
+        "from": "irina.shopifybuyer@example.ru",
+        "body": "Zdravstvuyte, moy poddon slomalsya posle pervogo ispolzovaniya. Ochen razocharovana.",
+        "attachments": []
+      },
+      "expected": {
+        "language": "ru",
+        "channel": "shopify",
+        "cause_determined": false,
+        "compensation": null,
+        "reply_needs_translation": true
+      }
+    },
+    {
+      "id": "10",
+      "name": "German, two units, two photos",
+      "input": {
+        "subject": "zwei kaputt",
+        "from": "petra.shopifybuyer@example.de",
+        "body": "Zwei meiner Schalen sind gerissen, ich schicke zwei Fotos.",
+        "attachments": [
+          { "contentType": "image/jpeg", "kind": "clear_damage_multi" },
+          { "contentType": "image/jpeg", "kind": "clear_damage_multi" }
+        ]
+      },
+      "expected": {
+        "language": "de",
+        "units_visible": 2,
+        "affected_quantity": 2,
+        "compensation": 30
+      }
+    },
+    {
+      "id": "11",
+      "name": "video only attachment",
+      "input": {
+        "subject": "See attached",
+        "from": "sam.shopifybuyer@example.com",
+        "body": "Please see the attached video of the issue.",
+        "attachments": [{ "contentType": "video/mp4", "kind": "n/a" }]
+      },
+      "expected": {
+        "usable_images": 0,
+        "vision_called": false,
+        "unsupported_attachment_types": ["video/mp4"],
+        "draft_warning": "unsupported attachment type(s): video/mp4",
+        "compensation": null
+      }
+    },
+    {
+      "id": "12",
+      "name": "empty subject and body",
+      "input": {
+        "subject": "",
+        "from": "blank.unknownbuyer@example.com",
+        "body": "",
+        "attachments": []
+      },
+      "expected": {
+        "category": "ESCALATE",
+        "crashes": false,
+        "compensation": null
+      }
+    }
+  ]
+}
