@@ -1,0 +1,15 @@
+case_id, case_version, conversation_id, case_seq, status, approval_status, approval_actor, approval_at,
+checkpoint, ruleset_version, retry_count, last_error, claim_token, claim_actor, claim_expires_at,
+processed_message_ids, slack_channel, slack_ts, customer_name, customer_email, subject, body_raw,
+language, reply_language, channel, order_number, country, region, currency, sku, product_name,
+root_cause_id, root_cause_text, cause_determined, compensation_level, replacement_quantity,
+needs_draft_order, reply_text, reply_text_en, inquiry_text_en, reply_needs_translation,
+draft_warnings, image_quality, damage_visible, units_visible, identified_from_receipt, warning_code,
+reports_product_fault, manual_review, manual_review_reasons, route_rule, opened_at, closed_at,
+created_at, updated_at, sharepoint_uploaded
+
+Types: number = case_version, case_seq, ruleset_version, retry_count, compensation_level,
+replacement_quantity, units_visible. boolean = cause_determined, needs_draft_order,
+reply_needs_translation, damage_visible, identified_from_receipt, reports_product_fault,
+manual_review, sharepoint_uploaded. dateTime = checkpoint, opened_at, created_at, updated_at.
+Everything else is text.
