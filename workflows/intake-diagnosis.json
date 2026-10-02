@@ -2,32 +2,6 @@
   "nodes": [
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://slack.com/api/chat.postMessage",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": {}
-      },
-      "id": "5fedf777-9be1-4bc2-bd67-d509d0677784",
-      "name": "Slack API: Post Case Card2",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1632, 480]
-    },
-    {
-      "parameters": {
         "rule": {
           "interval": [
             {
@@ -41,25 +15,43 @@
       "name": "Schedule: Every 10 min",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [-4416, 400]
+      "position": [
+        -4416,
+        400
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const __out = [];\nfor (const __item of $input.all()) {\nconst $json = __item.json;\nconst cfg = $('Config').item.json;\nconst trig = $json || {};\n__out.push([{ json: { cfg, cutoff_iso: trig.cutoff_override || cfg.cutoff_iso,\n  max_mails: parseInt(trig.max_mails_override || cfg.max_mails || '5', 10),\n  case_id_override: trig.case_id_override || null, test_mode: String(cfg.test_mode).toLowerCase() === 'true' } }]);\n}\nreturn __out.flat();"
+        "jsCode": "const __out = [];\nfor (const __item of $input.all()) {\nconst $json = __item.json;\nconst cfg = $('Config').item.json;\nconst trig = $json || {};\n__out.push([{ json: { cfg, cutoff_iso: trig.cutoff_override || cfg.cutoff_iso,\n  max_mails: parseInt(trig.max_mails_override || cfg.max_mails || '5', 10),\n  case_id_override: trig.case_id_override || null, test_mode: String(cfg.test_mode).toLowerCase() === 'true', mock_classify: String(cfg.mock_classify).toLowerCase() === 'true' } }]);\n}\nreturn __out.flat();"
       },
       "id": "6932616d-3984-407c-9499-ab82ce227bb0",
       "name": "Code: Resolve Run Parameters",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-3968, 400]
+      "position": [
+        -3968,
+        400
+      ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.test_mode }}",
+              "value2": true
+            }
+          ]
+        }
+      },
       "id": "77f3698f-2abe-474b-9fa6-683242662bd7",
       "name": "IF: Test Mode (Mailbox)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [-3744, 400]
+      "position": [
+        -3744,
+        400
+      ]
     },
     {
       "parameters": {
@@ -70,35 +62,56 @@
       "name": "Graph: List New Messages",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-3520, 304]
+      "position": [
+        -3520,
+        304
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const now = new Date().toISOString();\nconst carry = { cfg: $json.cfg, test_mode: $json.test_mode, cutoff_iso: $json.cutoff_iso, max_mails: $json.max_mails };\nreturn [\n { json: { ...carry, subject: 'Tray cracked', from: 'anna.shopifybuyer@example.com', body: 'My tray cracked after I pulled it out. It is clearly broken.', conversationId: 'test-conv-001', messageId: 'test-msg-001', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'Min bakke er i stykker', from: 'lars.shopifybuyer@example.dk', body: 'Min bakke gik i stykker da jeg trak den ud efter fryseren. Jeg bor i Danmark.', conversationId: 'test-conv-002', messageId: 'test-msg-002', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'Probleme avec mon bac', from: 'marie.amazonbuyer@example.fr', body: 'Le bac est fendu, achete sur Amazon. Voici une photo.', conversationId: 'test-conv-003', messageId: 'test-msg-003', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'clear_damage'}] } },\n { json: { ...carry, subject: 'asdkj??', from: 'weird.unknownbuyer@example.com', body: 'idk it just. doesnt work??? the thing. cold. help', conversationId: 'test-conv-004', messageId: 'test-msg-004', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'RE: your case', from: 'joy.shopifybuyer@example.us', body: 'Here are the photos.', conversationId: 'test-conv-existing-005', messageId: 'test-msg-005', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'clear_damage'}], existing_case_id: 'CS-20260820-ABC123' } },\n { json: { ...carry, subject: 'This is ridiculous, fix it NOW', from: 'rude.shopifybuyer@example.com', body: 'This product is garbage and so is your company. Fix it now or I will report you everywhere.', conversationId: 'test-conv-006', messageId: 'test-msg-006', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'Broken handle', from: 'rainer.shopifybuyer@example.de', body: 'Ich habe ein abgebrochenes Griffstueck fotografiert.', conversationId: 'test-conv-007', messageId: 'test-msg-007', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'part_only_no_tray'}] } },\n { json: { ...carry, subject: 'Receipt attached', from: 'kenji.amazonbuyer@example.jp', body: 'Broken tray, receipt attached showing the product name.', conversationId: 'test-conv-008', messageId: 'test-msg-008', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'receipt_only'}] } },\n { json: { ...carry, subject: 'Zhaloba na produkt', from: 'irina.shopifybuyer@example.ru', body: 'Zdravstvuyte, moy poddon slomalsya posle pervogo ispolzovaniya. Ochen razocharovana.', conversationId: 'test-conv-009', messageId: 'test-msg-009', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'zwei kaputt', from: 'petra.shopifybuyer@example.de', body: 'Zwei meiner Schalen sind gerissen, ich schicke zwei Fotos.', conversationId: 'test-conv-010', messageId: 'test-msg-010', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'clear_damage_multi'},{contentType:'image/jpeg', kind:'clear_damage_multi'}] } },\n { json: { ...carry, subject: 'See attached', from: 'sam.shopifybuyer@example.com', body: 'Please see the attached video of the issue.', conversationId: 'test-conv-011', messageId: 'test-msg-011', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'video/mp4', kind:'n/a'}] } },\n { json: { ...carry, subject: '', from: 'blank.unknownbuyer@example.com', body: '', conversationId: 'test-conv-012', messageId: 'test-msg-012', receivedAt: now, hasAttachments: false, mock_attachments: [] } }\n];"
+        "jsCode": "const now = new Date().toISOString();\nconst carry = { cfg: $json.cfg, test_mode: $json.test_mode, mock_classify: $json.mock_classify, cutoff_iso: $json.cutoff_iso, max_mails: $json.max_mails };\nreturn [\n { json: { ...carry, subject: 'Tray cracked', from: 'anna.shopifybuyer@example.com', body: 'My tray cracked after I pulled it out. It is clearly broken.', conversationId: 'test-conv-001', messageId: 'test-msg-001', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'Min bakke er i stykker', from: 'lars.shopifybuyer@example.dk', body: 'Min bakke gik i stykker da jeg trak den ud efter fryseren. Jeg bor i Danmark.', conversationId: 'test-conv-002', messageId: 'test-msg-002', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'Probleme avec mon bac', from: 'marie.amazonbuyer@example.fr', body: 'Le bac est fendu, achete sur Amazon. Voici une photo.', conversationId: 'test-conv-003', messageId: 'test-msg-003', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'clear_damage'}] } },\n { json: { ...carry, subject: 'asdkj??', from: 'weird.unknownbuyer@example.com', body: 'idk it just. doesnt work??? the thing. cold. help', conversationId: 'test-conv-004', messageId: 'test-msg-004', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'RE: your case', from: 'joy.shopifybuyer@example.us', body: 'Here are the photos.', conversationId: 'test-conv-existing-005', messageId: 'test-msg-005', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'clear_damage'}], existing_case_id: 'CS-20260820-ABC123' } },\n { json: { ...carry, subject: 'This is ridiculous, fix it NOW', from: 'rude.shopifybuyer@example.com', body: 'This product is garbage and so is your company. Fix it now or I will report you everywhere.', conversationId: 'test-conv-006', messageId: 'test-msg-006', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'Broken handle', from: 'rainer.shopifybuyer@example.de', body: 'Ich habe ein abgebrochenes Griffstueck fotografiert.', conversationId: 'test-conv-007', messageId: 'test-msg-007', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'part_only_no_tray'}] } },\n { json: { ...carry, subject: 'Receipt attached', from: 'kenji.amazonbuyer@example.jp', body: 'Broken tray, receipt attached showing the product name.', conversationId: 'test-conv-008', messageId: 'test-msg-008', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'receipt_only'}] } },\n { json: { ...carry, subject: 'Zhaloba na produkt', from: 'irina.shopifybuyer@example.ru', body: 'Zdravstvuyte, moy poddon slomalsya posle pervogo ispolzovaniya. Ochen razocharovana.', conversationId: 'test-conv-009', messageId: 'test-msg-009', receivedAt: now, hasAttachments: false, mock_attachments: [] } },\n { json: { ...carry, subject: 'zwei kaputt', from: 'petra.shopifybuyer@example.de', body: 'Zwei meiner Schalen sind gerissen, ich schicke zwei Fotos.', conversationId: 'test-conv-010', messageId: 'test-msg-010', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'image/jpeg', kind:'clear_damage_multi'},{contentType:'image/jpeg', kind:'clear_damage_multi'}] } },\n { json: { ...carry, subject: 'See attached', from: 'sam.shopifybuyer@example.com', body: 'Please see the attached video of the issue.', conversationId: 'test-conv-011', messageId: 'test-msg-011', receivedAt: now, hasAttachments: true, mock_attachments: [{contentType:'video/mp4', kind:'n/a'}] } },\n { json: { ...carry, subject: '', from: 'blank.unknownbuyer@example.com', body: '', conversationId: 'test-conv-012', messageId: 'test-msg-012', receivedAt: now, hasAttachments: false, mock_attachments: [] } }\n];"
       },
       "id": "688bec0a-3d17-4154-92bc-1a53499311d0",
       "name": "Code: TEST MODE - Hardcoded Inbox",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-3520, 496]
+      "position": [
+        -3520,
+        496
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const out = [];\nfor (const item of $input.all()) {\n  const d = item.json;\n  if (Array.isArray(d.value)) {\n    for (const m of d.value) out.push({ json: { subject: m.subject || '', from: m.from?.emailAddress?.address || '',\n      body: m.body?.content || m.bodyPreview || '', conversationId: m.conversationId, messageId: m.id,\n      receivedAt: m.receivedDateTime, hasAttachments: !!m.hasAttachments } });\n  } else { out.push({ json: d }); }\n}\nreturn out;"
+        "jsCode": "const out = [];\nconst run = $('Code: Resolve Run Parameters').first().json;\nfor (const item of $input.all()) {\n  const d = item.json;\n  if (Array.isArray(d.value)) {\n    for (const m of d.value) out.push({ json: { cfg: run.cfg, test_mode: run.test_mode, mock_classify: run.mock_classify, subject: m.subject || '', from: m.from?.emailAddress?.address || '',\n      body: m.body?.content || m.bodyPreview || '', conversationId: m.conversationId, messageId: m.id,\n      receivedAt: m.receivedDateTime, hasAttachments: !!m.hasAttachments } });\n  } else { out.push({ json: d }); }\n}\nreturn out;"
       },
       "id": "708caa57-582f-479c-9e4f-5d5b3c020faa",
       "name": "Code: Normalize Emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-3296, 400]
+      "position": [
+        -3296,
+        400
+      ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !String($json.from || '').toLowerCase().endsWith('@' + $json.cfg.own_domain) }}",
+              "value2": true
+            }
+          ]
+        }
+      },
       "id": "68398ff4-5c34-4f26-896b-1d91c875b5ae",
       "name": "IF: Is Support Email",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [-3072, 400]
+      "position": [
+        -3072,
+        400
+      ]
     },
     {
       "parameters": {},
@@ -106,7 +119,10 @@
       "name": "End: Not Support Email",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [-2848, 496]
+      "position": [
+        -2848,
+        496
+      ]
     },
     {
       "parameters": {
@@ -116,7 +132,10 @@
       "name": "Code: Derive Case/Conversation ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-2848, 304]
+      "position": [
+        -2848,
+        304
+      ]
     },
     {
       "parameters": {
@@ -140,16 +159,31 @@
       "name": "Data Table: Lookup Case by Conversation ID",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
-      "position": [-2624, 208],
+      "position": [
+        -2624,
+        208
+      ],
       "alwaysOutputData": true
     },
     {
-      "parameters": {},
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.already_processed }}",
+              "value2": true
+            }
+          ]
+        }
+      },
       "id": "d512f6d0-d492-4806-84a3-cb9aedd38479",
       "name": "IF: Message Already Processed",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [-2624, 400]
+      "position": [
+        -2624,
+        400
+      ]
     },
     {
       "parameters": {},
@@ -157,25 +191,43 @@
       "name": "Skip: Duplicate Message",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [-2400, 496]
+      "position": [
+        -2400,
+        496
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const __in = $input.all();\nconst __lookups = $('Data Table: Lookup Case by Conversation ID').all();\nconst __out = [];\nfor (let __i = 0; __i < __in.length; __i++) {\n  const $json = __in[__i].json;\n  const d = $json;\n  const lookup = (__lookups[__i] && __lookups[__i].json) || {};\n  const parent = (lookup && lookup.case_id) ? lookup : null;\n  __out.push({ json: { ...d,\n    is_continuation_of_open_case: !!(parent && parent.status === 'pending_approval' && parent.reports_product_fault === true),\n    inherited_reports_product_fault: parent ? parent.reports_product_fault : null,\n    parent_case_id: parent ? parent.case_id : null } });\n}\nreturn __out;"
+        "jsCode": "const __in = $('Code: Derive Case/Conversation ID').all();\nconst __lookups = $input.all().map(i => i.json).filter(r => r && r.case_id);\nconst __out = [];\nfor (const __item of __in) {\n  const d = __item.json;\n  const parent = __lookups.find(r => r.conversation_id === d.conversationId) || null;\n  let seen = [];\n  try { seen = JSON.parse((parent && parent.processed_message_ids) || '[]'); } catch (e) { seen = []; }\n  const isOpenFault = !!(parent && parent.status === 'pending_approval' && parent.reports_product_fault === true);\n  __out.push({ json: { ...d,\n    case_id: isOpenFault ? parent.case_id : d.case_id,\n    already_processed: seen.includes(d.messageId),\n    is_continuation_of_open_case: isOpenFault,\n    inherited_reports_product_fault: parent ? parent.reports_product_fault : null,\n    parent_case_id: parent ? parent.case_id : null,\n    parent_processed_ids: parent && parent.processed_message_ids ? parent.processed_message_ids : '[]' } });\n}\nreturn __out;"
       },
       "id": "6a917b9d-9b62-47ba-a89e-d17cae3dc7ad",
       "name": "Code: Build Continuation Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-2400, 304]
+      "position": [
+        -2400,
+        304
+      ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.test_mode }}",
+              "value2": true
+            }
+          ]
+        }
+      },
       "id": "12c1a419-f103-4809-858b-9525b61b3f6e",
       "name": "IF: Test Mode (Order Lookup)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [-2176, 304]
+      "position": [
+        -2176,
+        304
+      ]
     },
     {
       "parameters": {
@@ -186,7 +238,10 @@
       "name": "HTTP: Shopify Order Search by Email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-1952, 208]
+      "position": [
+        -1952,
+        208
+      ]
     },
     {
       "parameters": {
@@ -196,7 +251,10 @@
       "name": "Code: TEST MODE - Hardcoded Order Lookup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-1952, 400]
+      "position": [
+        -1952,
+        400
+      ]
     },
     {
       "parameters": {
@@ -206,23 +264,50 @@
       "name": "Code: Classify Attachments by Content-Type",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-1728, 304]
+      "position": [
+        -1728,
+        304
+      ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ ($json.usable_images || []).length > 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
       "id": "646f1a5a-f407-4947-b810-7c44bd7748c8",
       "name": "IF: Has Usable Image",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [-1504, 304]
+      "position": [
+        -1504,
+        304
+      ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.test_mode }}",
+              "value2": true
+            }
+          ]
+        }
+      },
       "id": "7aefe267-58e2-4a9d-9717-964fa90628b2",
       "name": "IF: Test Mode (Vision)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [-1280, 208]
+      "position": [
+        -1280,
+        208
+      ]
     },
     {
       "parameters": {
@@ -232,7 +317,10 @@
       "name": "Code: TEST MODE - Mock Vision Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-608, 112]
+      "position": [
+        -608,
+        112
+      ]
     },
     {
       "parameters": {
@@ -242,7 +330,10 @@
       "name": "Code: Build Vision Request Body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-1056, 304]
+      "position": [
+        -1056,
+        304
+      ]
     },
     {
       "parameters": {
@@ -252,7 +343,10 @@
       "name": "Code: Parse Vision Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-608, 304]
+      "position": [
+        -608,
+        304
+      ]
     },
     {
       "parameters": {},
@@ -260,7 +354,10 @@
       "name": "No Image: Pass Through",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [-608, 496]
+      "position": [
+        -608,
+        496
+      ]
     },
     {
       "parameters": {
@@ -270,7 +367,10 @@
       "name": "Code: Build Classify Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-384, 304]
+      "position": [
+        -384,
+        304
+      ]
     },
     {
       "parameters": {
@@ -280,7 +380,10 @@
       "name": "Code: Build Classify Request Body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-160, 304]
+      "position": [
+        -160,
+        304
+      ]
     },
     {
       "parameters": {
@@ -290,7 +393,10 @@
       "name": "Code: Parse Classify Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [288, 304]
+      "position": [
+        288,
+        304
+      ]
     },
     {
       "parameters": {
@@ -300,7 +406,10 @@
       "name": "Code: Apply Business Rules + Confidence Gate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [512, 304]
+      "position": [
+        512,
+        304
+      ]
     },
     {
       "parameters": {
@@ -310,7 +419,10 @@
       "name": "Code: Assemble Draft (EN + Native, Fail-Loud)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [736, 304]
+      "position": [
+        736,
+        304
+      ]
     },
     {
       "parameters": {
@@ -365,7 +477,8 @@
             "created_at": "={{$now.toISO()}}",
             "updated_at": "={{$now.toISO()}}",
             "retry_count": 0,
-            "replacement_quantity": 0
+            "replacement_quantity": 0,
+            "processed_message_ids": "={{ JSON.stringify([...JSON.parse($json.parent_processed_ids || '[]'), $json.messageId]) }}"
           },
           "matchingColumns": []
         },
@@ -375,15 +488,30 @@
       "name": "Data Table: Upsert Case",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
-      "position": [960, 208]
+      "position": [
+        960,
+        208
+      ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.test_mode }}",
+              "value2": true
+            }
+          ]
+        }
+      },
       "id": "740d77a8-250f-45a9-a3f9-48a22c48c4fc",
       "name": "IF: Test Mode (SharePoint)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [960, 400]
+      "position": [
+        960,
+        400
+      ]
     },
     {
       "parameters": {
@@ -395,7 +523,10 @@
       "name": "Graph: Upload Case Evidence to SharePoint",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1184, 256]
+      "position": [
+        1184,
+        256
+      ]
     },
     {
       "parameters": {
@@ -405,17 +536,23 @@
       "name": "Code: TEST MODE - Log Instead of Upload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1184, 544]
+      "position": [
+        1184,
+        544
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const __out = [];\nfor (const __item of $input.all()) {\nconst $json = __item.json;\nconst d = $json;\nconst blocks = [\n  { type: 'header', text: { type: 'plain_text', text: d.case_id + ' - ' + (d.subject || '(no subject)') } },\n  { type: 'context', elements: [{ type: 'mrkdwn', text: 'Submitted by ' + (d.customer_name || d.from) }] },\n  { type: 'section', fields: [\n    { type: 'mrkdwn', text: '*Product:*\\n' + (d.canonical_product_name || '_Not identified - ask under Edit_') },\n    { type: 'mrkdwn', text: '*Item no.:*\\n' + (d.order_lookup?.product_sku || '-') },\n    { type: 'mrkdwn', text: '*Bought via:*\\n' + (d.order_lookup?.channel || 'unknown') },\n    { type: 'mrkdwn', text: '*Country:*\\n' + (d.country_display || 'Unknown') },\n    { type: 'mrkdwn', text: '*Market:*\\n' + (d.ai_result?.region || 'unknown') },\n    { type: 'mrkdwn', text: '*Compensation:*\\n' + (d.compensation_level !== null && d.compensation_level !== undefined ? d.compensation_level + '%' : 'Evidence needed first') },\n    { type: 'mrkdwn', text: '*Root cause:*\\n' + (d.root_cause_text || '-') }\n  ]},\n  { type: 'divider' },\n  { type: 'section', text: { type: 'mrkdwn', text: '*Inquiry*\\n' + (d.body || '_(empty message)_') } },\n  { type: 'section', text: { type: 'mrkdwn', text: '*Draft*\\n' + d.reply_text_en } },\n  { type: 'actions', elements: [\n    { type: 'button', text: { type: 'plain_text', text: 'Approve' }, action_id: 'approve', value: d.case_id, style: 'primary' },\n    { type: 'button', text: { type: 'plain_text', text: 'Edit' }, action_id: 'edit_open', value: d.case_id },\n    { type: 'button', text: { type: 'plain_text', text: 'Park' }, action_id: 'park', value: d.case_id },\n    { type: 'button', text: { type: 'plain_text', text: 'Forward' }, action_id: 'forward', value: d.case_id }\n  ]}\n];\nif (d.draft_warnings && d.draft_warnings.length) blocks.splice(2, 0, { type: 'context', elements: [{ type: 'mrkdwn', text: '⚠️ ' + d.draft_warnings.join('; ') }] });\nif (d.manual_review) blocks.splice(2, 0, { type: 'context', elements: [{ type: 'mrkdwn', text: '🔎 Manual review recommended' }] });\n__out.push([{ json: { channel: d.cfg.slack_channel, blocks } }]);\n}\nreturn __out.flat();"
+        "jsCode": "const __out = [];\nfor (const __item of $input.all()) {\nconst $json = __item.json;\nconst d = $json;\nconst blocks = [\n  { type: 'header', text: { type: 'plain_text', text: d.case_id + ' - ' + (d.subject || '(no subject)') } },\n  { type: 'context', elements: [{ type: 'mrkdwn', text: 'Submitted by ' + (d.customer_name || d.from) }] },\n  { type: 'section', fields: [\n    { type: 'mrkdwn', text: '*Product:*\\n' + (d.canonical_product_name || '_Not identified - ask under Edit_') },\n    { type: 'mrkdwn', text: '*Item no.:*\\n' + (d.order_lookup?.product_sku || '-') },\n    { type: 'mrkdwn', text: '*Bought via:*\\n' + (d.order_lookup?.channel || 'unknown') },\n    { type: 'mrkdwn', text: '*Country:*\\n' + (d.country_display || 'Unknown') },\n    { type: 'mrkdwn', text: '*Market:*\\n' + (d.ai_result?.region || 'unknown') },\n    { type: 'mrkdwn', text: '*Compensation:*\\n' + (d.compensation_level !== null && d.compensation_level !== undefined ? d.compensation_level + '%' : 'Evidence needed first') },\n    { type: 'mrkdwn', text: '*Root cause:*\\n' + (d.root_cause_text || '-') }\n  ]},\n  { type: 'divider' },\n  { type: 'section', text: { type: 'mrkdwn', text: '*Inquiry*\\n' + (d.body || '_(empty message)_') } },\n  { type: 'section', text: { type: 'mrkdwn', text: '*Draft*\\n' + d.reply_text_en } },\n  { type: 'actions', elements: [\n    { type: 'button', text: { type: 'plain_text', text: 'Approve' }, action_id: 'approve', value: d.case_id, style: 'primary' },\n    { type: 'button', text: { type: 'plain_text', text: 'Edit' }, action_id: 'edit_open', value: d.case_id },\n    { type: 'button', text: { type: 'plain_text', text: 'Park' }, action_id: 'park', value: d.case_id },\n    { type: 'button', text: { type: 'plain_text', text: 'Forward' }, action_id: 'forward', value: d.case_id }\n  ]}\n];\nif (d.draft_warnings && d.draft_warnings.length) blocks.splice(2, 0, { type: 'context', elements: [{ type: 'mrkdwn', text: '⚠️ ' + d.draft_warnings.join('; ') }] });\nif (d.manual_review) blocks.splice(2, 0, { type: 'context', elements: [{ type: 'mrkdwn', text: '🔎 Manual review recommended' }] });\n__out.push([{ json: { channel: d.cfg.slack_channel, blocks, case_id: d.case_id, test_mode: d.test_mode } }]);\n}\nreturn __out.flat();"
       },
       "id": "77f0c796-91aa-41e4-a671-c03964368a69",
       "name": "Code: Build Slack Blocks (Clean Card)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1408, 480]
+      "position": [
+        1408,
+        480
+      ]
     },
     {
       "parameters": {
@@ -429,7 +566,7 @@
           "conditions": [
             {
               "keyName": "case_id",
-              "keyValue": "={{$json.case_id}}"
+              "keyValue": "={{ $('Code: Build Slack Blocks (Clean Card)').item.json.case_id }}"
             }
           ]
         },
@@ -446,7 +583,10 @@
       "name": "Data Table: Save Slack Message Ref",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
-      "position": [1856, 480]
+      "position": [
+        1856,
+        480
+      ]
     },
     {
       "parameters": {},
@@ -454,7 +594,10 @@
       "name": "End: Case Posted",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [2080, 480]
+      "position": [
+        2080,
+        480
+      ]
     },
     {
       "parameters": {
@@ -471,7 +614,10 @@
       "name": "Azure OpenAI: Image - Product ID + Damage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-832, 304]
+      "position": [
+        -832,
+        304
+      ]
     },
     {
       "parameters": {
@@ -488,35 +634,159 @@
       "name": "Azure OpenAI: Classify & Extract Case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [64, 304]
+      "position": [
+        64,
+        304
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "c1", "name": "mailbox", "value": "support@example.com", "type": "string" },
-            { "id": "c2", "name": "own_domain", "value": "example.com", "type": "string" },
-            { "id": "c3", "name": "slack_channel", "value": "YOUR_SLACK_CHANNEL_ID", "type": "string" },
-            { "id": "c4", "name": "sp_site_id", "value": "YOUR_SHAREPOINT_SITE_ID", "type": "string" },
-            { "id": "c5", "name": "test_mode", "value": "true", "type": "string" },
-            { "id": "c6", "name": "cutoff_iso", "value": "2026-01-01T00:00:00Z", "type": "string" },
-            { "id": "c7", "name": "max_mails", "value": "12", "type": "string" },
-            { "id": "c9", "name": "case_store_table", "value": "support_cases", "type": "string" },
-            { "id": "c12", "name": "azure_openai_url", "value": "https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT/chat/completions?api-version=2025-03-01-preview", "type": "string" },
-            { "id": "c13", "name": "azure_openai_deployment", "value": "YOUR_DEPLOYMENT", "type": "string" },
-            { "id": "c15", "name": "shopify_shop", "value": "your-store.myshopify.com", "type": "string" },
-            { "id": "c16", "name": "shopify_api_version", "value": "2025-01", "type": "string" },
-            { "id": "c18", "name": "error_workflow_id", "value": "YOUR_ERROR_WORKFLOW_ID", "type": "string" },
-            { "id": "c20", "name": "config_version", "value": "1", "type": "string" },
-            { "id": "c22", "name": "compensation_amazon_override_pct", "value": "100", "type": "string" },
-            { "id": "c23", "name": "compensation_floor_pct", "value": "30", "type": "string" },
-            { "id": "c24", "name": "compensation_rude_pct", "value": "0", "type": "string" },
-            { "id": "c25", "name": "canonical_video_url", "value": "https://example.com/video", "type": "string" },
-            { "id": "c26", "name": "required_phrase_c01", "value": "YOUR_INSTRUCTION_PHRASE", "type": "string" },
-            { "id": "c27", "name": "banned_phrases", "value": "free of charge,defective", "type": "string" },
-            { "id": "c28", "name": "link_domain_allowlist", "value": "example.com,myshopify.com,amazon.com,amazon.de", "type": "string" },
-            { "id": "c29", "name": "last_intake_success_iso", "value": "", "type": "string" },
-            { "id": "c30", "name": "downtime_recovery_threshold_minutes", "value": "45", "type": "string" }
+            {
+              "id": "c1",
+              "name": "mailbox",
+              "value": "support@example.com",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "own_domain",
+              "value": "mystore.example",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "slack_channel",
+              "value": "YOUR_SLACK_CHANNEL_ID",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "sp_site_id",
+              "value": "YOUR_SHAREPOINT_SITE_ID",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "test_mode",
+              "value": "true",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "cutoff_iso",
+              "value": "2026-01-01T00:00:00Z",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "max_mails",
+              "value": "12",
+              "type": "string"
+            },
+            {
+              "id": "c9",
+              "name": "case_store_table",
+              "value": "support_cases",
+              "type": "string"
+            },
+            {
+              "id": "c12",
+              "name": "azure_openai_url",
+              "value": "https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT/chat/completions?api-version=2025-03-01-preview",
+              "type": "string"
+            },
+            {
+              "id": "c13",
+              "name": "azure_openai_deployment",
+              "value": "YOUR_DEPLOYMENT",
+              "type": "string"
+            },
+            {
+              "id": "c15",
+              "name": "shopify_shop",
+              "value": "your-store.myshopify.com",
+              "type": "string"
+            },
+            {
+              "id": "c16",
+              "name": "shopify_api_version",
+              "value": "2025-01",
+              "type": "string"
+            },
+            {
+              "id": "c18",
+              "name": "error_workflow_id",
+              "value": "YOUR_ERROR_WORKFLOW_ID",
+              "type": "string"
+            },
+            {
+              "id": "c20",
+              "name": "config_version",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "c22",
+              "name": "compensation_amazon_override_pct",
+              "value": "100",
+              "type": "string"
+            },
+            {
+              "id": "c23",
+              "name": "compensation_floor_pct",
+              "value": "30",
+              "type": "string"
+            },
+            {
+              "id": "c24",
+              "name": "compensation_rude_pct",
+              "value": "0",
+              "type": "string"
+            },
+            {
+              "id": "c25",
+              "name": "canonical_video_url",
+              "value": "https://example.com/video",
+              "type": "string"
+            },
+            {
+              "id": "c26",
+              "name": "required_phrase_c01",
+              "value": "Release step",
+              "type": "string"
+            },
+            {
+              "id": "c27",
+              "name": "banned_phrases",
+              "value": "free of charge,defective",
+              "type": "string"
+            },
+            {
+              "id": "c28",
+              "name": "link_domain_allowlist",
+              "value": "example.com,myshopify.com,amazon.com,amazon.de",
+              "type": "string"
+            },
+            {
+              "id": "c29",
+              "name": "last_intake_success_iso",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c30",
+              "name": "downtime_recovery_threshold_minutes",
+              "value": "45",
+              "type": "string"
+            },
+            {
+              "id": "c31",
+              "name": "mock_classify",
+              "value": "true",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -525,95 +795,599 @@
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [-4192, 400]
+      "position": [
+        -4192,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.mock_classify }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "beae14c8-22da-4ab1-8569-cfcb72fa957b",
+      "name": "IF: Mock Classification",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BASE = { category: 'SUPPORT', language: 'en', has_photos: false, channel: 'unknown', region: 'unknown', country: 'unknown',\n  wrong_brand: false, discontinued_product: false, asks_for_refund_or_return: false, hostile_legal_press_or_chargeback: false,\n  instruction_only_problem: false, manipulation_attempt: false, rude_or_gaming: false, reports_product_fault: true,\n  affected_quantity: 1, root_cause_id: null,\n  fault_signals: { leaking: false, crack_or_break: true, hole: false, part_broke_off: false, says_no_visible_damage: false, says_followed_instructions: false, says_photo_difficult: false },\n  summary: 'Mock classification.' };\nconst NOFAULT = { crack_or_break: false, leaking: false, hole: false, part_broke_off: false, says_no_visible_damage: false, says_followed_instructions: false, says_photo_difficult: false };\nconst MOCKS = {\n  'test-conv-001': { summary: 'Cracked tray, no cause given, no photo.' },\n  'test-conv-002': { language: 'da', country: 'DK', region: 'EU', root_cause_id: 'c01', summary: 'Danish customer, cracked after removal.' },\n  'test-conv-003': { language: 'fr', country: 'FR', region: 'EU', has_photos: true, root_cause_id: 'c01', summary: 'French marketplace order, photo attached.' },\n  'test-conv-004': { category: 'ESCALATE', reports_product_fault: false, fault_signals: NOFAULT, summary: 'No usable signal.' },\n  'test-conv-existing-005': { has_photos: true, root_cause_id: 'c01', summary: 'Reply with photos on an open fault case.' },\n  'test-conv-006': { rude_or_gaming: true, reports_product_fault: false, fault_signals: NOFAULT, summary: 'Hostile tone, no evidence.' },\n  'test-conv-007': { language: 'de', country: 'DE', region: 'EU', has_photos: true, fault_signals: { ...BASE.fault_signals, crack_or_break: false, part_broke_off: true }, summary: 'Detached handle, no tray in frame.' },\n  'test-conv-008': { language: 'ja', country: 'JP', has_photos: true, summary: 'Receipt only, no damage evidence.' },\n  'test-conv-009': { language: 'ru', country: 'RU', summary: 'Russian customer, tray broke on first use.' },\n  'test-conv-010': { language: 'de', country: 'DE', region: 'EU', has_photos: true, affected_quantity: 2, root_cause_id: 'c01', summary: 'Two units cracked, two photos.' },\n  'test-conv-011': { has_photos: false, summary: 'Video attachment only.' },\n  'test-conv-012': { category: 'ESCALATE', reports_product_fault: false, fault_signals: NOFAULT, summary: 'Empty message.' }\n};\nconst __out = [];\nfor (const __item of $input.all()) {\n  const d = __item.json;\n  const ai_result = { ...BASE, channel: (d.order_lookup && d.order_lookup.channel) || 'unknown',\n    ...(MOCKS[d.conversationId] || { category: 'ESCALATE', reports_product_fault: false, fault_signals: NOFAULT }), _mock: true };\n  __out.push({ json: { ...d, ai_result } });\n}\nreturn __out;"
+      },
+      "id": "c9725851-d153-4844-a8c1-30f262cc04ed",
+      "name": "Code: TEST MODE - Mock Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.test_mode }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "d4ac788f-13a6-43f5-b322-a08b2be4adb4",
+      "name": "IF: Test Mode (Slack)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const __out = [];\nfor (const __item of $input.all()) {\n  const d = __item.json;\n  const lines = [];\n  for (const b of d.blocks || []) {\n    if (b.type === 'header') lines.push('== ' + b.text.text + ' ==');\n    else if (b.type === 'context') lines.push(b.elements.map(e => e.text).join(' '));\n    else if (b.type === 'section' && b.fields) lines.push(b.fields.map(f => f.text.replace(/\\n/g, ' ')).join(' | '));\n    else if (b.type === 'section' && b.text) lines.push(b.text.text.replace(/\\*/g, ''));\n    else if (b.type === 'actions') lines.push('[' + b.elements.map(e => e.text.text).join('] [') + ']');\n  }\n  __out.push({ json: { case_id: d.case_id, preview: lines.join('\\n'), blocks: d.blocks } });\n}\nreturn __out;"
+      },
+      "id": "22e9d7e1-415a-4f04-9026-e3972a9c907c",
+      "name": "Code: TEST MODE - Show Card",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: $json.channel, blocks: $json.blocks }) }}",
+        "options": {}
+      },
+      "id": "5fedf777-9be1-4bc2-bd67-d509d0677784",
+      "name": "Slack API: Post Case Card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1632,
+        480
+      ]
     }
   ],
   "connections": {
-    "Slack API: Post Case Card2": { "main": [[{ "node": "Data Table: Save Slack Message Ref", "type": "main", "index": 0 }]] },
-    "Schedule: Every 10 min": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
-    "Code: Resolve Run Parameters": { "main": [[{ "node": "IF: Test Mode (Mailbox)", "type": "main", "index": 0 }]] },
-    "IF: Test Mode (Mailbox)": {
+    "Schedule: Every 10 min": {
       "main": [
-        [{ "node": "Code: TEST MODE - Hardcoded Inbox", "type": "main", "index": 0 }],
-        [{ "node": "Graph: List New Messages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Graph: List New Messages": { "main": [[{ "node": "Code: Normalize Emails", "type": "main", "index": 0 }]] },
-    "Code: TEST MODE - Hardcoded Inbox": { "main": [[{ "node": "Code: Normalize Emails", "type": "main", "index": 0 }]] },
-    "Code: Normalize Emails": { "main": [[{ "node": "IF: Is Support Email", "type": "main", "index": 0 }]] },
+    "Code: Resolve Run Parameters": {
+      "main": [
+        [
+          {
+            "node": "IF: Test Mode (Mailbox)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Test Mode (Mailbox)": {
+      "main": [
+        [
+          {
+            "node": "Code: TEST MODE - Hardcoded Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Graph: List New Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Graph: List New Messages": {
+      "main": [
+        [
+          {
+            "node": "Code: Normalize Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: TEST MODE - Hardcoded Inbox": {
+      "main": [
+        [
+          {
+            "node": "Code: Normalize Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Normalize Emails": {
+      "main": [
+        [
+          {
+            "node": "IF: Is Support Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "IF: Is Support Email": {
       "main": [
-        [{ "node": "Code: Derive Case/Conversation ID", "type": "main", "index": 0 }],
-        [{ "node": "End: Not Support Email", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Code: Derive Case/Conversation ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "End: Not Support Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Code: Derive Case/Conversation ID": {
       "main": [
         [
-          { "node": "Data Table: Lookup Case by Conversation ID", "type": "main", "index": 0 },
-          { "node": "IF: Message Already Processed", "type": "main", "index": 0 }
+          {
+            "node": "Data Table: Lookup Case by Conversation ID",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF: Message Already Processed": {
       "main": [
-        [{ "node": "Code: Build Continuation Context", "type": "main", "index": 0 }],
-        [{ "node": "Skip: Duplicate Message", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Skip: Duplicate Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Test Mode (Order Lookup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Code: Build Continuation Context": { "main": [[{ "node": "IF: Test Mode (Order Lookup)", "type": "main", "index": 0 }]] },
+    "Code: Build Continuation Context": {
+      "main": [
+        [
+          {
+            "node": "IF: Message Already Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "IF: Test Mode (Order Lookup)": {
       "main": [
-        [{ "node": "Code: TEST MODE - Hardcoded Order Lookup", "type": "main", "index": 0 }],
-        [{ "node": "HTTP: Shopify Order Search by Email", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Code: TEST MODE - Hardcoded Order Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP: Shopify Order Search by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "HTTP: Shopify Order Search by Email": { "main": [[{ "node": "Code: Classify Attachments by Content-Type", "type": "main", "index": 0 }]] },
-    "Code: TEST MODE - Hardcoded Order Lookup": { "main": [[{ "node": "Code: Classify Attachments by Content-Type", "type": "main", "index": 0 }]] },
-    "Code: Classify Attachments by Content-Type": { "main": [[{ "node": "IF: Has Usable Image", "type": "main", "index": 0 }]] },
+    "HTTP: Shopify Order Search by Email": {
+      "main": [
+        [
+          {
+            "node": "Code: Classify Attachments by Content-Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: TEST MODE - Hardcoded Order Lookup": {
+      "main": [
+        [
+          {
+            "node": "Code: Classify Attachments by Content-Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Classify Attachments by Content-Type": {
+      "main": [
+        [
+          {
+            "node": "IF: Has Usable Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "IF: Has Usable Image": {
       "main": [
-        [{ "node": "IF: Test Mode (Vision)", "type": "main", "index": 0 }],
-        [{ "node": "No Image: Pass Through", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF: Test Mode (Vision)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Image: Pass Through",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF: Test Mode (Vision)": {
       "main": [
-        [{ "node": "Code: TEST MODE - Mock Vision Result", "type": "main", "index": 0 }],
-        [{ "node": "Code: Build Vision Request Body", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Code: TEST MODE - Mock Vision Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code: Build Vision Request Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Code: TEST MODE - Mock Vision Result": { "main": [[{ "node": "Code: Build Classify Prompt", "type": "main", "index": 0 }]] },
-    "Code: Build Vision Request Body": { "main": [[{ "node": "Azure OpenAI: Image - Product ID + Damage", "type": "main", "index": 0 }]] },
-    "Code: Parse Vision Response": { "main": [[{ "node": "Code: Build Classify Prompt", "type": "main", "index": 0 }]] },
-    "No Image: Pass Through": { "main": [[{ "node": "Code: Build Classify Prompt", "type": "main", "index": 0 }]] },
-    "Code: Build Classify Prompt": { "main": [[{ "node": "Code: Build Classify Request Body", "type": "main", "index": 0 }]] },
-    "Code: Build Classify Request Body": { "main": [[{ "node": "Azure OpenAI: Classify & Extract Case", "type": "main", "index": 0 }]] },
-    "Code: Parse Classify Response": { "main": [[{ "node": "Code: Apply Business Rules + Confidence Gate", "type": "main", "index": 0 }]] },
-    "Code: Apply Business Rules + Confidence Gate": { "main": [[{ "node": "Code: Assemble Draft (EN + Native, Fail-Loud)", "type": "main", "index": 0 }]] },
+    "Code: TEST MODE - Mock Vision Result": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Classify Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Vision Request Body": {
+      "main": [
+        [
+          {
+            "node": "Azure OpenAI: Image - Product ID + Damage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Vision Response": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Classify Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Image: Pass Through": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Classify Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Classify Prompt": {
+      "main": [
+        [
+          {
+            "node": "IF: Mock Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Classify Request Body": {
+      "main": [
+        [
+          {
+            "node": "Azure OpenAI: Classify & Extract Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Classify Response": {
+      "main": [
+        [
+          {
+            "node": "Code: Apply Business Rules + Confidence Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Apply Business Rules + Confidence Gate": {
+      "main": [
+        [
+          {
+            "node": "Code: Assemble Draft (EN + Native, Fail-Loud)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Code: Assemble Draft (EN + Native, Fail-Loud)": {
       "main": [
         [
-          { "node": "Data Table: Upsert Case", "type": "main", "index": 0 },
-          { "node": "IF: Test Mode (SharePoint)", "type": "main", "index": 0 }
+          {
+            "node": "Data Table: Upsert Case",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF: Test Mode (SharePoint)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF: Test Mode (SharePoint)": {
       "main": [
-        [{ "node": "Code: TEST MODE - Log Instead of Upload", "type": "main", "index": 0 }],
         [
-          { "node": "Graph: Upload Case Evidence to SharePoint", "type": "main", "index": 0 },
-          { "node": "Code: Build Slack Blocks (Clean Card)", "type": "main", "index": 0 }
+          {
+            "node": "Code: TEST MODE - Log Instead of Upload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Graph: Upload Case Evidence to SharePoint",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code: Build Slack Blocks (Clean Card)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
-    "Code: TEST MODE - Log Instead of Upload": { "main": [[{ "node": "Code: Build Slack Blocks (Clean Card)", "type": "main", "index": 0 }]] },
-    "Code: Build Slack Blocks (Clean Card)": { "main": [[{ "node": "Slack API: Post Case Card2", "type": "main", "index": 0 }]] },
-    "Data Table: Save Slack Message Ref": { "main": [[{ "node": "End: Case Posted", "type": "main", "index": 0 }]] },
-    "Azure OpenAI: Image - Product ID + Damage": { "main": [[{ "node": "Code: Parse Vision Response", "type": "main", "index": 0 }]] },
-    "Azure OpenAI: Classify & Extract Case": { "main": [[{ "node": "Code: Parse Classify Response", "type": "main", "index": 0 }]] },
-    "Config": { "main": [[{ "node": "Code: Resolve Run Parameters", "type": "main", "index": 0 }]] }
+    "Code: TEST MODE - Log Instead of Upload": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Slack Blocks (Clean Card)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Slack Blocks (Clean Card)": {
+      "main": [
+        [
+          {
+            "node": "IF: Test Mode (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Table: Save Slack Message Ref": {
+      "main": [
+        [
+          {
+            "node": "End: Case Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI: Image - Product ID + Damage": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Vision Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI: Classify & Extract Case": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Classify Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Code: Resolve Run Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Mock Classification": {
+      "main": [
+        [
+          {
+            "node": "Code: TEST MODE - Mock Classification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code: Build Classify Request Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: TEST MODE - Mock Classification": {
+      "main": [
+        [
+          {
+            "node": "Code: Apply Business Rules + Confidence Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Table: Lookup Case by Conversation ID": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Continuation Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Test Mode (Slack)": {
+      "main": [
+        [
+          {
+            "node": "Code: TEST MODE - Show Card",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack API: Post Case Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: TEST MODE - Show Card": {
+      "main": [
+        [
+          {
+            "node": "End: Case Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack API: Post Case Card": {
+      "main": [
+        [
+          {
+            "node": "Data Table: Save Slack Message Ref",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "pinData": {}
 }
