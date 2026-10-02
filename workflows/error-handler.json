@@ -1,0 +1,286 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "24000765-24a0-4c12-a964-9e936cb123df",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        250
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8e8b8c22-8914-4bd4-8dc2-5e6ecffcda97",
+      "name": "Manual Trigger (demo)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst mk = (message, node) => ({ json: {\n  workflow: { id: '1', name: '01 intake and diagnosis' },\n  execution: { id: '1234', url: 'http://localhost:5678/workflow/1/executions/1234', mode: 'trigger',\n    lastNodeExecuted: node, error: { message, stack: 'NodeApiError: ' + message, node: { name: node } } } } });\nreturn [\n  mk('Request failed with status code 429 (rate limit) for case CS-20261001-ABC123', 'Azure OpenAI: Classify & Extract Case'),\n  mk('Bad request: invalid_auth (401 Unauthorized)', 'Slack API: Post Case Card')\n];"
+      },
+      "id": "b18e0e92-21fe-41ba-90cc-7c7f3715cd5d",
+      "name": "Code: TEST MODE - Sample Errors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0",
+              "name": "ops_channel",
+              "value": "YOUR_OPS_CHANNEL_ID",
+              "type": "string"
+            },
+            {
+              "id": "c1",
+              "name": "error_log_table",
+              "value": "support_error_log",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "config_version",
+              "value": "1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "e551253b-a63b-41f6-a948-933891523f98",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        125
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  const ex = j.execution || {};\n  const err = ex.error || {};\n  const message = String(err.message || 'unknown error');\n  const stack = String(err.stack || '');\n  const m = (message + ' ' + stack).match(/CS-\\d{8}-[A-Z0-9]{6}/);\n  const auth = /\\b(401|403)\\b|unauthori[sz]ed|forbidden|invalid_auth|not_authed|token_revoked/i.test(message);\n  const transient = !auth && /\\b(429|502|503|504)\\b|rate limit|timeout|timed out|ETIMEDOUT|ECONNRESET|temporarily/i.test(message);\n  const error_class = auth ? 'auth' : transient ? 'transient' : 'other';\n  out.push({ json: {\n    ops_channel: j.ops_channel, error_log_table: j.error_log_table,\n    occurred_at: new Date().toISOString(),\n    workflow_name: (j.workflow && j.workflow.name) || 'unknown',\n    node: (err.node && err.node.name) || ex.lastNodeExecuted || 'unknown',\n    message: message.slice(0, 500),\n    execution_id: ex.id || null, execution_url: ex.url || null,\n    case_id: m ? m[0] : null,\n    error_class, is_critical: error_class !== 'transient' } });\n}\nreturn out;"
+      },
+      "id": "a48d0330-7d58-4d28-b26d-fab00ce25363",
+      "name": "Code: Extract Error Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        125
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_critical }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "8dfefb95-55a7-4e53-8849-4fceb93c3cf2",
+      "name": "IF: Critical Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        960,
+        50
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "={{ $json.error_log_table }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "occurred_at": "={{ $json.occurred_at }}",
+            "workflow_name": "={{ $json.workflow_name }}",
+            "node": "={{ $json.node }}",
+            "message": "={{ $json.message }}",
+            "execution_id": "={{ $json.execution_id }}",
+            "case_id": "={{ $json.case_id }}",
+            "error_class": "={{ $json.error_class }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "5de23c33-02f5-4421-aef2-44c1165f7c1c",
+      "name": "Data Table: Insert Error Log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        960,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst out = [];\nfor (const item of $input.all()) {\n  const d = item.json;\n  const text = '[ALERT] ' + d.workflow_name + ' failed at \"' + d.node + '\"' +\n    (d.case_id ? ' (case ' + d.case_id + ')' : '') + '. ' + d.error_class + ': ' + d.message +\n    (d.execution_url ? ' ' + d.execution_url : '');\n  out.push({ json: { channel: d.ops_channel, text } });\n}\nreturn out;"
+      },
+      "id": "d5c7145b-7bdb-45b8-a4e3-525f3f1bca4e",
+      "name": "Code: Build Ops Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "7ce27602-1584-44a7-9d7c-1166e9a87d7b",
+      "name": "Slack API: Post Ops Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "id": "846c0927-7ae6-46e1-9ce7-fbc750f74b14",
+      "name": "End: Logged Only",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        150
+      ]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger (demo)": {
+      "main": [
+        [
+          {
+            "node": "Code: TEST MODE - Sample Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: TEST MODE - Sample Errors": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Code: Extract Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Extract Error Details": {
+      "main": [
+        [
+          {
+            "node": "IF: Critical Error",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Data Table: Insert Error Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Critical Error": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Ops Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "End: Logged Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Ops Alert": {
+      "main": [
+        [
+          {
+            "node": "Slack API: Post Ops Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
