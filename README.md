@@ -14,12 +14,13 @@ customer without explicit approval.
 
 ## Workflows
 
-| File | Purpose | Status |
-|---|---|---|
-| intake-diagnosis | Inbox to Slack card | Working in test mode |
-| slack-actions | Approve, edit, park, forward | Scaffold |
-| error handler | Failure alerts | Planned |
-| Watchdog | Dropped-email checks | Planned |
+| Part | Status |
+|---|---|
+| intake and diagnosis | Runs end to end in demo mode |
+| slack actions | Scaffold |
+| error handler | Runs in demo mode |
+| health watchdog | Runs in demo mode |
+| Shopify replacement | Designed, not built |
 
 ## Business rules
 
