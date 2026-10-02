@@ -1,0 +1,900 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2cee64f3-d027-4a0f-8cde-35e4b739d192",
+      "name": "Manual Trigger (demo)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "8c2a21cc-b982-4e23-8973-ea92bf4e3e33",
+      "name": "Schedule: Every 30 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0",
+              "name": "test_mode",
+              "value": "true",
+              "type": "string"
+            },
+            {
+              "id": "c1",
+              "name": "case_store_table",
+              "value": "support_cases",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "slack_channel",
+              "value": "YOUR_SLACK_CHANNEL_ID",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "ops_channel",
+              "value": "YOUR_OPS_CHANNEL_ID",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "sp_site_id",
+              "value": "YOUR_SHAREPOINT_SITE_ID",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "config_version",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "last_intake_success_iso",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "downtime_recovery_threshold_minutes",
+              "value": "45",
+              "type": "string"
+            },
+            {
+              "id": "c8",
+              "name": "stuck_checkpoint_minutes",
+              "value": "30",
+              "type": "string"
+            },
+            {
+              "id": "c9",
+              "name": "sla_hours",
+              "value": "24",
+              "type": "string"
+            },
+            {
+              "id": "c10",
+              "name": "max_retries",
+              "value": "3",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2cbd68c7-7440-4656-ba03-b606f352be40",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst cfg = $input.first().json;\nreturn [{ json: { cfg, test_mode: String(cfg.test_mode).toLowerCase() === 'true', now_iso: new Date().toISOString() } }];"
+      },
+      "id": "c86fcbc6-18be-4e03-bf3a-4429911e7c1c",
+      "name": "Code: Resolve Run Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.test_mode }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "8c2da14a-21f1-4b49-a7a9-f614992165ed",
+      "name": "IF: Test Mode",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        720,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst cfg = $input.first().json.cfg;\nconst now = Date.now();\nconst ago = (min) => new Date(now - min * 60000).toISOString();\nconst base = { status: 'pending_approval', ruleset_version: 1, retry_count: 0, last_error: '',\n  slack_ts: '1700000000.000100', sharepoint_uploaded: true, checkpoint: ago(2), opened_at: ago(20) };\nconst cases = [\n  { ...base, case_id: 'CS-DEMO-0001', slack_ts: '' },\n  { ...base, case_id: 'CS-DEMO-0002', sharepoint_uploaded: false },\n  { ...base, case_id: 'CS-DEMO-0003', status: 'processing', slack_ts: '', checkpoint: ago(120), retry_count: 1, last_error: 'Azure OpenAI 429 rate limit during classification' },\n  { ...base, case_id: 'CS-DEMO-0004', opened_at: ago(60 * 30) },\n  { ...base, case_id: 'CS-DEMO-0005', ruleset_version: 0 },\n  { ...base, case_id: 'CS-DEMO-0006' },\n  { ...base, case_id: 'CS-DEMO-0007', status: 'processing', slack_ts: '', checkpoint: ago(240), retry_count: 3, last_error: 'classification parse failure' }\n];\nreturn [{ json: { cfg, test_mode: true, cases, junk_count: 2, last_intake_success_iso: ago(95) } }];"
+      },
+      "id": "50ebf3f0-7fa5-4bb5-b0d0-7da893f5441f",
+      "name": "Code: TEST MODE - Mock State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "={{ $json.cfg.case_store_table }}",
+          "mode": "name"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "bf635e51-23c0-4d61-8d62-5cc8c2aa62cb",
+      "name": "Data Table: Get Cases",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        960,
+        200
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://graph.microsoft.com/v1.0/me/mailFolders/JunkEmail/messages",
+        "options": {}
+      },
+      "id": "1bc14a0d-c2a8-498f-8f5f-4003138649b8",
+      "name": "Graph: List Junk Folder Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst run = $('Code: Resolve Run Parameters').first().json;\nconst cases = $('Data Table: Get Cases').all().map(i => i.json).filter(r => r && r.case_id);\nconst junk = $input.first().json.value || [];\nreturn [{ json: { cfg: run.cfg, test_mode: false, cases, junk_count: junk.length,\n  last_intake_success_iso: run.cfg.last_intake_success_iso || '' } }];"
+      },
+      "id": "b93eb546-19ae-4da5-94ac-dbe5c9004466",
+      "name": "Code: Build Live State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst s = $input.first().json;\nconst cfg = s.cfg;\nconst now = Date.now();\nconst minutes = (iso) => (now - new Date(iso).getTime()) / 60000;\nconst stuckMin = Number(cfg.stuck_checkpoint_minutes || 30);\nconst slaMin = Number(cfg.sla_hours || 24) * 60;\nconst maxRetries = Number(cfg.max_retries || 3);\nconst cfgVersion = parseInt(cfg.config_version, 10);\nconst ORDER = ['ai_failed', 'missing_slack', 'missing_sharepoint', 'stale_ruleset', 'sla_breach'];\nconst ACTION = {\n  ai_failed: 'Retry classification through the intake workflow',\n  missing_slack: 'Re-post the case card to Slack',\n  missing_sharepoint: 'Re-upload the evidence file to SharePoint',\n  stale_ruleset: 'Reprocess the case with the current ruleset',\n  sla_breach: 'Escalate to the ops channel'\n};\nconst out = [];\nfor (const c of s.cases) {\n  if (['approved', 'parked', 'forwarded', 'closed'].includes(c.status)) continue;\n  const open = c.status === 'pending_approval';\n  const stuck = c.status === 'processing' && minutes(c.checkpoint) > stuckMin;\n  const hits = [];\n  if (stuck && /azure|openai|classif/i.test(c.last_error || '')) hits.push('ai_failed');\n  if (!c.slack_ts && (stuck || open)) hits.push('missing_slack');\n  if (c.sharepoint_uploaded === false) hits.push('missing_sharepoint');\n  if (open && Number(c.ruleset_version) < cfgVersion) hits.push('stale_ruleset');\n  if (open && c.opened_at && minutes(c.opened_at) > slaMin) hits.push('sla_breach');\n  if (!hits.length) continue;\n  let reason = ORDER.find(r => hits.includes(r));\n  let escalation_cause = null;\n  if (Number(c.retry_count || 0) >= maxRetries && reason !== 'sla_breach') {\n    reason = 'sla_breach';\n    escalation_cause = 'retries_exhausted';\n  }\n  out.push({ json: { case_id: c.case_id, reason, all_reasons: hits, retry_count: Number(c.retry_count || 0),\n    escalation_cause, planned_action: ACTION[reason] + (escalation_cause ? ' (retries exhausted)' : ''),\n    test_mode: s.test_mode, slack_channel: cfg.slack_channel, ops_channel: cfg.ops_channel, sp_site_id: cfg.sp_site_id } });\n}\nreturn out;"
+      },
+      "id": "543d89c5-3631-415e-9a03-d7cebc804b56",
+      "name": "Code: Flag Stuck and Stale Cases",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "80e6f71e-68ba-4f15-b8ff-8f543fb4f7f7",
+                    "leftValue": "={{ $json.reason }}",
+                    "rightValue": "missing_slack",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "missing_slack"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "98550ac3-08a8-4fb9-ba87-322f80c54863",
+                    "leftValue": "={{ $json.reason }}",
+                    "rightValue": "missing_sharepoint",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "missing_sharepoint"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1eac90a3-c162-4cfc-8089-a93a75bcbe90",
+                    "leftValue": "={{ $json.reason }}",
+                    "rightValue": "ai_failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ai_failed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4a037bb3-f793-43de-90e9-f601e34c0d72",
+                    "leftValue": "={{ $json.reason }}",
+                    "rightValue": "sla_breach",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sla_breach"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "154d23e0-901b-40f9-bb9e-ec85d884a4b5",
+                    "leftValue": "={{ $json.reason }}",
+                    "rightValue": "stale_ruleset",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "stale_ruleset"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c208a4a-6c4a-4827-94e2-f36bab888054",
+      "name": "Switch: Route by Reason",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1940,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: $json.slack_channel, text: 'Case ' + $json.case_id + ' was missing from Slack and is re-posted for review.' }) }}",
+        "options": {}
+      },
+      "id": "125e7dcf-32e1-4f91-8912-86a8e5aad085",
+      "name": "Slack API: Re-post Case Card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        -300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $json.sp_site_id }}/drive/root:/Cases/{{ $json.case_id }}.json:/content",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "0bd626d4-f095-479d-93ca-0042313950c8",
+      "name": "Graph: Re-upload SharePoint Doc",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        -200
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflowId": "YOUR_INTAKE_WORKFLOW_ID",
+        "options": {}
+      },
+      "id": "526a3bc0-1401-4249-b64b-05b30b8809d6",
+      "name": "Execute Workflow: Retry Classification",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        -100
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: $json.ops_channel, text: 'Case ' + $json.case_id + ' needs attention: ' + $json.planned_action }) }}",
+        "options": {}
+      },
+      "id": "1259aee3-534a-40e8-895f-9ed715069f60",
+      "name": "Slack API: Post SLA Escalation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflowId": "YOUR_INTAKE_WORKFLOW_ID",
+        "options": {}
+      },
+      "id": "478fb54d-293d-49ba-806d-1d6df4784bb0",
+      "name": "Execute Workflow: Reprocess Stale-Ruleset Case",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        100
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 5,
+        "options": {}
+      },
+      "id": "061e0486-eaad-4513-b7ab-758dd91b8f86",
+      "name": "Merge: Converge Actions",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        2460,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst flagged = $('Code: Flag Stuck and Stale Cases').all().map(i => i.json);\nconst by = {};\nfor (const f of flagged) by[f.reason] = (by[f.reason] || 0) + 1;\nreturn [{ json: {\n  mode: flagged.length && flagged[0].test_mode ? 'demo, mock data' : 'live data',\n  flagged_count: flagged.length, by_reason: by,\n  actions: flagged.map(f => ({ case_id: f.case_id, reason: f.reason, action: f.planned_action })) } }];"
+      },
+      "id": "bf97dbfe-59b4-4f98-89c7-798113daf88b",
+      "name": "Code: Build Run Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst s = $input.first().json;\nconst n = s.junk_count || 0;\nreturn [{ json: { test_mode: s.test_mode, slack_channel: s.cfg.slack_channel, junk_count: n,\n  planned_action: n > 0 ? 'Post a low priority review request for ' + n + ' junk folder message(s). Never auto-process them.' : 'Junk folder is empty.' } }];"
+      },
+      "id": "3aa761d5-70a2-4d68-ac48-56f2b05cfc6e",
+      "name": "Code: Junk Folder Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.junk_count }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "0d49a365-6d3c-4f30-bfff-e2538e49f286",
+      "name": "IF: Junk Present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: $json.slack_channel, text: $json.planned_action }) }}",
+        "options": {}
+      },
+      "id": "441c87fe-2171-41a0-9f93-4d2b5aa42dbe",
+      "name": "Slack API: Post Junk Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        250
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst s = $input.first().json;\nconst cfg = s.cfg;\nconst last = s.last_intake_success_iso ? new Date(s.last_intake_success_iso).getTime() : NaN;\nif (isNaN(last)) {\n  return [{ json: { test_mode: s.test_mode, exceeded: false, planned_action: 'No last success checkpoint stored. Downtime check skipped.' } }];\n}\nconst threshold = Number(cfg.downtime_recovery_threshold_minutes || 45);\nconst minutes = Math.round((Date.now() - last) / 60000);\nconst exceeded = minutes > threshold;\nreturn [{ json: { test_mode: s.test_mode, exceeded, minutes_since_success: minutes, threshold_minutes: threshold,\n  cutoff_override: new Date(last).toISOString(),\n  planned_action: exceeded ? 'Backfill the mailbox from ' + new Date(last).toISOString() + ' through the intake workflow' : 'Intake is healthy.' } }];"
+      },
+      "id": "cd41c02b-dc9c-4f6c-bae1-cd58d9aff5eb",
+      "name": "Code: Downtime Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.exceeded }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "d472c301-13d6-4926-be14-1002fbfcb857",
+      "name": "IF: Downtime Exceeded",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "YOUR_INTAKE_WORKFLOW_ID",
+        "options": {}
+      },
+      "id": "a9fccb1c-43a0-41f3-b029-f903b938e21c",
+      "name": "Execute Workflow: Backfill Mailbox",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        450
+      ],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Manual Trigger (demo)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule: Every 30 min": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Code: Resolve Run Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Resolve Run Parameters": {
+      "main": [
+        [
+          {
+            "node": "IF: Test Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Test Mode": {
+      "main": [
+        [
+          {
+            "node": "Code: TEST MODE - Mock State",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Data Table: Get Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Table: Get Cases": {
+      "main": [
+        [
+          {
+            "node": "Graph: List Junk Folder Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Graph: List Junk Folder Messages": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Live State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: TEST MODE - Mock State": {
+      "main": [
+        [
+          {
+            "node": "Code: Flag Stuck and Stale Cases",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code: Junk Folder Check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code: Downtime Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Live State": {
+      "main": [
+        [
+          {
+            "node": "Code: Flag Stuck and Stale Cases",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code: Junk Folder Check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code: Downtime Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Flag Stuck and Stale Cases": {
+      "main": [
+        [
+          {
+            "node": "Switch: Route by Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Route by Reason": {
+      "main": [
+        [
+          {
+            "node": "Slack API: Re-post Case Card",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Graph: Re-upload SharePoint Doc",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Workflow: Retry Classification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack API: Post SLA Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Workflow: Reprocess Stale-Ruleset Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Junk Folder Check": {
+      "main": [
+        [
+          {
+            "node": "IF: Junk Present",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Junk Present": {
+      "main": [
+        [
+          {
+            "node": "Slack API: Post Junk Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Downtime Check": {
+      "main": [
+        [
+          {
+            "node": "IF: Downtime Exceeded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Downtime Exceeded": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Backfill Mailbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack API: Re-post Case Card": {
+      "main": [
+        [
+          {
+            "node": "Merge: Converge Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Graph: Re-upload SharePoint Doc": {
+      "main": [
+        [
+          {
+            "node": "Merge: Converge Actions",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Retry Classification": {
+      "main": [
+        [
+          {
+            "node": "Merge: Converge Actions",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Slack API: Post SLA Escalation": {
+      "main": [
+        [
+          {
+            "node": "Merge: Converge Actions",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Reprocess Stale-Ruleset Case": {
+      "main": [
+        [
+          {
+            "node": "Merge: Converge Actions",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge: Converge Actions": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Run Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
